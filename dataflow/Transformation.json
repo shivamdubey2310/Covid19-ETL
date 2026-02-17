@@ -12,7 +12,15 @@
 					"name": "source1"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "nullRemove"
@@ -28,7 +36,14 @@
 				"     ignoreNoFilesFound: false,",
 				"     format: 'parquet') ~> source1",
 				"source1 filter(!isNull(date) && toDate(date) <= currentDate()) ~> nullRemove",
-				"nullRemove derive(case_fatality_percent = (deaths / confirmed) * 100) ~> DeriveColumnFatalityPercent"
+				"nullRemove derive(case_fatality_percent = (deaths / confirmed) * 100) ~> DeriveColumnFatalityPercent",
+				"DeriveColumnFatalityPercent sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink1"
 			]
 		}
 	}
