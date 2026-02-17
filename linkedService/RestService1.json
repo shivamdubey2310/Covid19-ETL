@@ -1,0 +1,13 @@
+{
+	"name": "RestService1",
+	"properties": {
+		"description": "Rest connection",
+		"annotations": [],
+		"type": "RestService",
+		"typeProperties": {
+			"url": "https://covid-api.com/api/",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		}
+	}
+}
