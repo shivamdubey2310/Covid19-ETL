@@ -4,7 +4,7 @@
 		"description": "Raw Data Ingestion from API to Raw ADLS.",
 		"activities": [
 			{
-				"name": "Copy_e1r",
+				"name": "Extract",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
@@ -395,11 +395,11 @@
 				]
 			},
 			{
-				"name": "Transformation",
+				"name": "Transform",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [
 					{
-						"activity": "Copy_e1r",
+						"activity": "Extract",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -415,7 +415,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "Transformatin",
+						"referenceName": "Transformation",
 						"type": "DataFlowReference"
 					},
 					"compute": {
