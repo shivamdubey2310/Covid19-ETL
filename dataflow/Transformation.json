@@ -24,10 +24,6 @@
 			"transformations": [
 				{
 					"name": "nullRemove"
-				},
-				{
-					"name": "DeriveColumnFatalityPercent",
-					"description": "Case Fatality % (cleaned)"
 				}
 			],
 			"scriptLines": [
@@ -35,9 +31,8 @@
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     format: 'parquet') ~> source1",
-				"source1 filter(!isNull(date) && toDate(date) <= currentDate()) ~> nullRemove",
-				"nullRemove derive(case_fatality_percent = (deaths / confirmed) * 100) ~> DeriveColumnFatalityPercent",
-				"DeriveColumnFatalityPercent sink(allowSchemaDrift: true,",
+				"source1 filter(!isNull(current_page)) ~> nullRemove",
+				"nullRemove sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     umask: 0022,",
 				"     preCommands: [],",
