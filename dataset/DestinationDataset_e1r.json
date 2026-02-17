@@ -10,6 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
+				"fileName": "raw_data.json",
 				"container": "raw"
 			},
 			"compressionCodec": "snappy"
