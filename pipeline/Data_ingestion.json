@@ -1,0 +1,400 @@
+{
+	"name": "Data_ingestion",
+	"properties": {
+		"description": "Raw Data Ingestion from API to Raw ADLS.",
+		"activities": [
+			{
+				"name": "Copy_e1r",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Source",
+						"value": "https://covid-api.com/api/reports?date=2020-04-16&q=US%20Alabama&iso=USA&region_name=US&region_province=Alabama&city_name=Autauga&per_page=20"
+					},
+					{
+						"name": "Destination",
+						"value": "raw//"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"validateDataConsistency": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "$['current_page']"
+								},
+								"sink": {
+									"name": "current_page",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['first_page_url']"
+								},
+								"sink": {
+									"name": "first_page_url",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['last_page_url']"
+								},
+								"sink": {
+									"name": "last_page_url",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['next_page_url']"
+								},
+								"sink": {
+									"name": "next_page_url",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['prev_page_url']"
+								},
+								"sink": {
+									"name": "prev_page_url",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['per_page']"
+								},
+								"sink": {
+									"name": "per_page",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['last_page']"
+								},
+								"sink": {
+									"name": "last_page",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['from']"
+								},
+								"sink": {
+									"name": "from",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['path']"
+								},
+								"sink": {
+									"name": "path",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['to']"
+								},
+								"sink": {
+									"name": "to",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['total']"
+								},
+								"sink": {
+									"name": "total",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['date']"
+								},
+								"sink": {
+									"name": "data'][0]['date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['confirmed']"
+								},
+								"sink": {
+									"name": "data'][0]['confirmed",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['deaths']"
+								},
+								"sink": {
+									"name": "data'][0]['deaths",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['recovered']"
+								},
+								"sink": {
+									"name": "recovered",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['confirmed_diff']"
+								},
+								"sink": {
+									"name": "data'][0]['confirmed_diff",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['deaths_diff']"
+								},
+								"sink": {
+									"name": "data'][0]['deaths_diff",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['recovered_diff']"
+								},
+								"sink": {
+									"name": "recovered_diff",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['last_update']"
+								},
+								"sink": {
+									"name": "data'][0]['last_update",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['active']"
+								},
+								"sink": {
+									"name": "active",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['active_diff']"
+								},
+								"sink": {
+									"name": "active_diff",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['fatality_rate']"
+								},
+								"sink": {
+									"name": "fatality_rate",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['iso']"
+								},
+								"sink": {
+									"name": "iso",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['name']"
+								},
+								"sink": {
+									"name": "data'][0]['region_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['province']"
+								},
+								"sink": {
+									"name": "province",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['lat']"
+								},
+								"sink": {
+									"name": "data'][0]['region_lat",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['long']"
+								},
+								"sink": {
+									"name": "data'][0]['region_long",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['name']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['date']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['date",
+									"type": "Date"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['fips']"
+								},
+								"sink": {
+									"name": "fips",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['lat']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['lat",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['long']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['long",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['confirmed']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['confirmed",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['deaths']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['deaths",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['confirmed_diff']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['confirmed_diff",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['deaths_diff']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['deaths_diff",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "$['data'][0]['region']['cities'][0]['last_update']"
+								},
+								"sink": {
+									"name": "data'][0]['region_cities'][0]['last_update",
+									"type": "DateTime"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SourceDataset_e1r",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DestinationDataset_e1r",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"annotations": []
+	}
+}
