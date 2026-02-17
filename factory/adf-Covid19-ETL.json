@@ -1,0 +1,9 @@
+{
+	"name": "adf-Covid19-ETL",
+	"location": "japaneast",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "a12bbc78-05bd-4775-86a5-b792ed6b320a",
+		"tenantId": "6f72082b-a4f5-431e-9a46-ac97453f27c7"
+	}
+}
