@@ -31,7 +31,7 @@
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     format: 'parquet') ~> source1",
-				"source1 filter(!isNull(current_page)) ~> nullRemove",
+				"source1 filter(!isNull(1)) ~> nullRemove",
 				"nullRemove sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     umask: 0022,",
