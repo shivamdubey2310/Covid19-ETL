@@ -1,0 +1,648 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-Covid19-ETL"
+		},
+		"AzureBlobStorage1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage1'"
+		},
+		"AzureDataLakeStorage1_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage1'"
+		},
+		"RestService1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://covid-api.com/api/"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://sacovid19etl.dfs.core.windows.net/"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureBlobStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureBlobStorage1_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RestService1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Rest connection",
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('RestService1_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDataLakeStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDataLakeStorage1_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DestinationDataset_e1r')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"container": "raw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SourceDataset_e1r')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "RestService1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "RestResource",
+				"typeProperties": {
+					"relativeUrl": "https://covid-api.com/api/reports?date=2020-04-16&q=US%20Alabama&iso=USA&region_name=US&region_province=Alabama&city_name=Autauga&per_page=20"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/RestService1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DelimitedText1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureDataLakeStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Transformation')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DestinationDataset_e1r",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DelimitedText1",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "nullRemove"
+						}
+					],
+					"scriptLines": [
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 filter(!isNull(1)) ~> nullRemove",
+						"nullRemove sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DestinationDataset_e1r')]",
+				"[concat(variables('factoryId'), '/datasets/DelimitedText1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Data_ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Raw Data Ingestion from API to Raw ADLS.",
+				"activities": [
+					{
+						"name": "Extract",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [
+							{
+								"name": "Source",
+								"value": "https://covid-api.com/api/reports?date=2020-04-16&q=US%20Alabama&iso=USA&region_name=US&region_province=Alabama&city_name=Autauga&per_page=20"
+							},
+							{
+								"name": "Destination",
+								"value": "raw/"
+							}
+						],
+						"typeProperties": {
+							"source": {
+								"type": "RestSource",
+								"httpRequestTimeout": "00:01:40",
+								"requestInterval": "00.00:00:00.010",
+								"requestMethod": "GET"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "FlattenHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['current_page']"
+										},
+										"sink": {
+											"name": "current_page",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['first_page_url']"
+										},
+										"sink": {
+											"name": "first_page_url",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['last_page_url']"
+										},
+										"sink": {
+											"name": "last_page_url",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['next_page_url']"
+										},
+										"sink": {
+											"name": "next_page_url",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['prev_page_url']"
+										},
+										"sink": {
+											"name": "prev_page_url",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['per_page']"
+										},
+										"sink": {
+											"name": "per_page",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['last_page']"
+										},
+										"sink": {
+											"name": "last_page",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['from']"
+										},
+										"sink": {
+											"name": "from",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['path']"
+										},
+										"sink": {
+											"name": "path",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['to']"
+										},
+										"sink": {
+											"name": "to",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['total']"
+										},
+										"sink": {
+											"name": "total",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['date']"
+										},
+										"sink": {
+											"name": "data'][0]['date",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['confirmed']"
+										},
+										"sink": {
+											"name": "data'][0]['confirmed",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['deaths']"
+										},
+										"sink": {
+											"name": "data'][0]['deaths",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['recovered']"
+										},
+										"sink": {
+											"name": "recovered",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['confirmed_diff']"
+										},
+										"sink": {
+											"name": "data'][0]['confirmed_diff",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['deaths_diff']"
+										},
+										"sink": {
+											"name": "data'][0]['deaths_diff",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['recovered_diff']"
+										},
+										"sink": {
+											"name": "recovered_diff",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['last_update']"
+										},
+										"sink": {
+											"name": "data'][0]['last_update",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['active']"
+										},
+										"sink": {
+											"name": "active",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['active_diff']"
+										},
+										"sink": {
+											"name": "active_diff",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['fatality_rate']"
+										},
+										"sink": {
+											"name": "fatality_rate",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['iso']"
+										},
+										"sink": {
+											"name": "iso",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['name']"
+										},
+										"sink": {
+											"name": "data'][0]['region_name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['province']"
+										},
+										"sink": {
+											"name": "province",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['lat']"
+										},
+										"sink": {
+											"name": "data'][0]['region_lat",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['long']"
+										},
+										"sink": {
+											"name": "data'][0]['region_long",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['name']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['date']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['date",
+											"type": "Date"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['fips']"
+										},
+										"sink": {
+											"name": "fips",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['lat']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['lat",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['long']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['long",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['confirmed']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['confirmed",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['deaths']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['deaths",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['confirmed_diff']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['confirmed_diff",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['deaths_diff']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['deaths_diff",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['data'][0]['region']['cities'][0]['last_update']"
+										},
+										"sink": {
+											"name": "data'][0]['region_cities'][0]['last_update",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "SourceDataset_e1r",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DestinationDataset_e1r",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Transform",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Extract",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Transformation",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SourceDataset_e1r')]",
+				"[concat(variables('factoryId'), '/datasets/DestinationDataset_e1r')]",
+				"[concat(variables('factoryId'), '/dataflows/Transformation')]"
+			]
+		}
+	]
+}
